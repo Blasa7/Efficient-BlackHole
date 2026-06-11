@@ -4,21 +4,23 @@
 #include <set>
 #include <map>
 #include <vector>
-#include "exponentVar.hpp"
-#include "octTree.hpp"
+#include <exponentVar.hpp>
+#include <octTree.hpp>
 
 #pragma once
 
+template <uint32_t dimensions>
 struct by_id { 
-    bool operator()(blackHoleNode* const &a, blackHoleNode* const &b) const {
+    bool operator()(blackHoleNode<dimensions>* const &a, blackHoleNode<dimensions>* const &b) const {
         return a->getID() < b->getID();
     }
 };
 
+template <uint32_t dimensions>
 class nodeCollection{
 private :
-	std::map<int, blackHoleNode*> nodeMap;
-	std::vector<blackHoleNode*> nodeVec;
+	std::map<int, blackHoleNode<dimensions>*> nodeMap;
+	std::vector<blackHoleNode<dimensions>*> nodeVec;
 	int* degMat;
 	float** adjMat;
 public :
@@ -32,15 +34,17 @@ public :
 	bool checkExists(int nID);
 	void degreeSet();
 	void clearClusterId();
-	std::vector<blackHoleNode*>* getNodeVec();
-	std::map<int, blackHoleNode*>& getNodeMap();
+	std::vector<blackHoleNode<dimensions>*>* getNodeVec();
+	std::map<int, blackHoleNode<dimensions>*>& getNodeMap();
 
 	//Barneshut
-	double addRepulsionDir(blackHoleNode* unp, double* dir, exponentVar& expVar,OctTree* octTree);
-	double addAttractionDirA(blackHoleNode* unp, double* dir, exponentVar& expVar,OctTree* octTree);
-	void setDir(blackHoleNode* unp, double* dir,  exponentVar& expVar,OctTree* octTree);
-	double getEnergy(blackHoleNode* unp, exponentVar& expVar,OctTree* octTree);
-	double getEnergyR(blackHoleNode* unp , exponentVar& expVar,OctTree* octTree);
-	double getEnergyAA(blackHoleNode* unp , exponentVar& expVar, OctTree* octTree);
-	double findInitEnergy(exponentVar& expVar, OctTree* octTree);
+	double addRepulsionDir(blackHoleNode<dimensions>* unp, double* dir, exponentVar& expVar,OctTree<dimensions>* octTree);
+	double addAttractionDirA(blackHoleNode<dimensions>* unp, double* dir, exponentVar& expVar,OctTree<dimensions>* octTree);
+	void setDir(blackHoleNode<dimensions>* unp, double* dir,  exponentVar& expVar,OctTree<dimensions>* octTree);
+	double getEnergy(blackHoleNode<dimensions>* unp, exponentVar& expVar,OctTree<dimensions>* octTree);
+	double getEnergyR(blackHoleNode<dimensions>* unp , exponentVar& expVar,OctTree<dimensions>* octTree);
+	double getEnergyAA(blackHoleNode<dimensions>* unp , exponentVar& expVar, OctTree<dimensions>* octTree);
+	double findInitEnergy(exponentVar& expVar, OctTree<dimensions>* octTree);
 };
+
+#include "nodeCollection.cpp"

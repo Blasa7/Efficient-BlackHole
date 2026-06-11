@@ -9,12 +9,14 @@
 #include <cstdio>
 
 
+template <uint32_t dimensions>
 class OctTree;
 
+template <uint32_t dimensions>
 class memoryManager{
 private :
-	OctTree* temp;
-	std::vector<OctTree**> childVec;	//new OctTree*[8]
+	OctTree<dimensions>* temp;
+	std::vector<OctTree<dimensions>**> childVec;	//new OctTree*[8]
 	int current;
 	int child_current;
 	int prior;
@@ -24,9 +26,9 @@ public :
 
 	memoryManager(int nodeNum);
 
-	OctTree* get_Instance();
+	OctTree<dimensions>* get_Instance();
 
-	OctTree** get_children();
+	OctTree<dimensions>** get_children();
 
 	void dealloc();
 
@@ -42,8 +44,10 @@ public :
 
 	void restore();
 
-	void swap(OctTree* swapper);
+	void swap(OctTree<dimensions>* swapper);
 
 };
+
+#include "memoryManager.cpp"
 
 #endif

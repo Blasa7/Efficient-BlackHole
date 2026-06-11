@@ -1,4 +1,4 @@
-#include "Util.hpp"
+#include <Util.hpp>
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -10,7 +10,6 @@
 #include <set>
 #include <sstream>
 #include <cstring>
-#include "Dim.hpp"
 
 const double PI = 3.141592653589793238463;
 
@@ -22,9 +21,10 @@ public:
 };
 
 // calculate N-Dimensional matrix's distances
+template <uint32_t dimensions>
 double calcDist(float* a[], int i, int j ){
 		double sum = 0.0;
-		for (int z = 0; z < DIMENSION; z++){
+		for (int z = 0; z < dimensions; z++){
 			sum = sum + ((a[z][i] - a[z][j]) * (a[z][i] - a[z][j]));
 		}
 		return sqrt(sum);
@@ -32,9 +32,10 @@ double calcDist(float* a[], int i, int j ){
 
 
 
+template <uint32_t dimensions>
 class DBscanPlay{
 public :
-	static void dbscanCalculator(char * inputFile, int minPts, float removePercentage){
+	static void dbscanCalculator(const char * inputFile, int minPts, float removePercentage){
 
 		clock_t start_time, end_time;	  // clock_t
 		start_time = clock();				  // Start_Time
@@ -75,9 +76,9 @@ public :
 
 		int* communitySelf = new int[nodeNum];
 
-		std::cout<<"Dimension : "<<DIMENSION<<std::endl;
-		float* points[DIMENSION];
-		for(int i = 0; i < DIMENSION; i++){
+		std::cout<<"Dimension : "<<dimensions<<std::endl;
+		float* points[dimensions];
+		for(int i = 0; i < dimensions; i++){
 			points[i] = new float[nodeNum];
 		}
 
@@ -86,7 +87,7 @@ public :
 		int* communityInfo = new int[nodeNum];
 		bool* isSeed = new bool[nodeNum];
 		for (int ttt = 0; ttt < nodeNum; ttt++){
-			for(int j = 0; j < DIMENSION; j++){
+			for(int j = 0; j < dimensions; j++){
 				points[j][ttt] = 0.0f;
 			}
 			visited[ttt] = false;
@@ -101,7 +102,7 @@ public :
 			while (getline(nodeToCommunity2, line)){
 				strcpy(oneLine, line.c_str());
 				del = strtok(oneLine, "\t ");
-				for(int j = 0; j < DIMENSION; j++){
+				for(int j = 0; j < dimensions; j++){
 					tempVar = strtok(NULL, "\t ");
 					points[j][counter] = atof(tempVar.c_str());
 				}
@@ -119,7 +120,7 @@ public :
 
 		for (int i = 0; i < nodeNum; i++){
 			for (int j = 0; j < nodeNum; j++){
-				dist_sorted[j] = calcDist(points, i, j);		//precalc
+				dist_sorted[j] = calcDist<dimensions>(points, i, j);		//precalc
 			}
 			std::sort(dist_sorted, dist_sorted + nodeNum);
 			dist_vec[i] = dist_sorted[minPts - 1];
@@ -204,7 +205,7 @@ public :
 
 		for (int i = 0; i < nodeNum; i++){
 			for (int j = 0; j < nodeNum; j++){
-				if (calcDist(points, i, j) <= eps){
+				if (calcDist<dimensions>(points, i, j) <= eps){
 					countN[i]++;
 				}
 			}
@@ -232,7 +233,7 @@ public :
 					if (i == j)
 						continue;
 
-					if (calcDist(points, i, j) <= eps){
+					if (calcDist<dimensions>(points, i, j) <= eps){
 						setN.insert(j);
 						if (countN[j] >= minPts){
 							isSeed[j] = true;
@@ -252,7 +253,7 @@ public :
 							if (cur == k)
 								continue;
 
-							if (calcDist(points, cur, k) <= eps){
+							if (calcDist<dimensions>(points, cur, k) <= eps){
 								setN.insert(k);
 								if (countN[k] >= minPts){
 									isSeed[k] = true;
@@ -269,7 +270,7 @@ public :
 					if (i == j)
 						continue;
 
-					if (calcDist(points, i, j) <= eps){
+					if (calcDist<dimensions>(points, i, j) <= eps){
 						if (visited[j] == false){   //unvisited
 							visited[j] = true;
 							communityInfo[j] = communityInfo[i];
@@ -302,7 +303,7 @@ public :
 		ofs.close();
 		nodeToCommunity2.close();
 
-		for(int z = 0; z < DIMENSION; z++){
+		for(int z = 0; z < dimensions; z++){
 			delete[] points[z];
 		}
 

@@ -6,21 +6,21 @@
 #include <cstdio>
 #include <sstream>
 #include <string>
-#include "Dim.hpp"
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #pragma once
 
 
+template <uint32_t dimensions>
 class ClusterPlay{
 public :
-	 void play(char* inputfile, double alpha, char* alphaChar, const char* fileFullName){
+	void play(const char* inputfile, double alpha, const char* fileFullName){
 		clock_t start_time, end_time;      // clock_t 
 		int iter = 100;
 
-		nodeCollection nc;
-		edgeReader fr;
+		nodeCollection<dimensions> nc;
+		edgeReader<dimensions> fr;
 		
 		// Read inputfile and make a graph
 		fr.readFile(inputfile, &nc);
@@ -31,12 +31,12 @@ public :
 
 		exponentVar expVar(alpha, 0.0, nc.getSumOfDegree());
 
-		memoryManager memMgr(nc.getNodeVec()->size());
+		memoryManager<dimensions> memMgr(nc.getNodeVec()->size());
 
 		// Build OCT TREE
-		OctTree* tt = buildOctTree(&nc, &memMgr);
+		OctTree<dimensions>* tt = buildOctTree(&nc, &memMgr);
 
-		std::vector<blackHoleNode*>* vecp = nc.getNodeVec();
+		std::vector<blackHoleNode<dimensions>*>* vecp = nc.getNodeVec();
 
 		// To get initial energy
 		double initEnergy = 0.0;
@@ -82,26 +82,25 @@ public :
 		memMgr.dealloc();
 	}
 
-
-	 bool updateBarneshut(int currentIter, nodeCollection* p, exponentVar& expVar, memoryManager* mgr, int nrIteration){
+	 bool updateBarneshut(int currentIter, nodeCollection<dimensions>* p, exponentVar& expVar, memoryManager<dimensions>* mgr, int nrIteration){
 
 		double energySum = 0.0;
 
-		std::vector<blackHoleNode*>* vect = p->getNodeVec();
+		std::vector<blackHoleNode<dimensions>*>* vect = p->getNodeVec();
 		
-		OctTree* octTree = buildOctTree(p, mgr);
+		OctTree<dimensions>* octTree = buildOctTree(p, mgr);
 
 		adjustComponent(currentIter+1, nrIteration, expVar);
 		
 		double attrExponent =  expVar.getAttrExponent();
 		double repuExponent = expVar.getRepuExponent();
 
-		double* XY = new double[DIMENSION];
-		double* X1Y1 = new double[DIMENSION];
-		double* oldXY = new double[DIMENSION];
-		double* bestDir = new double[DIMENSION];
+		double* XY = new double[dimensions];
+		double* X1Y1 = new double[dimensions];
+		double* oldXY = new double[dimensions];
+		double* bestDir = new double[dimensions];
 
-		for(int i = 0; i < DIMENSION; i++){
+		for(int i = 0; i < dimensions; i++){
 			XY[i] = 0.0f;
 			X1Y1[i] = 0.0f;
 			oldXY[i] = 0.0f;
@@ -111,13 +110,13 @@ public :
 
 		for(unsigned int i = 0; i < (*vect).size(); i++){
 
-			for(int z = 0; z < DIMENSION; z++){
+			for(int z = 0; z < dimensions; z++){
 				bestDir[z] = 0.0f;
 			}
 
 			double oldEnergy = p->getEnergy((*vect)[i], expVar, octTree);
 			p->setDir((*vect)[i], bestDir, expVar, octTree);
-			for (int k = 0; k < DIMENSION; k++){
+			for (int k = 0; k < dimensions; k++){
 				X1Y1[k] = (*vect)[i]->getValue(k);
 				XY[k] = X1Y1[k];
 				oldXY[k] = X1Y1[k];
@@ -127,13 +126,13 @@ public :
 			
 			int bestMultiple = 0;
 
-			for (int k = 0; k < DIMENSION; k++){
+			for (int k = 0; k < dimensions; k++){
 				bestDir[k] = bestDir[k] / 32.0;
 			}
 						
 			for (int multiple = 32;	 multiple >= 1 && (bestMultiple==0 || bestMultiple/2==multiple); multiple /= 2) {
 				octTree->removeNode((*vect)[i],XY, 0, mgr);
-				for (int ss = 0; ss < DIMENSION; ss++){
+				for (int ss = 0; ss < dimensions; ss++){
 					(*vect)[i]->setValue(oldXY[ss] + bestDir[ss] * multiple, ss);
 					XY[ss] = oldXY[ss] + bestDir[ss] * multiple;
 				}
@@ -151,7 +150,7 @@ public :
 			for (int multiple = 64;  multiple <= 128 && bestMultiple == multiple/2;  multiple *= 2) {
 				octTree->removeNode((*vect)[i],XY, 0, mgr);
 
-				for (int ss = 0; ss < DIMENSION; ss++){
+				for (int ss = 0; ss < dimensions; ss++){
 					(*vect)[i]->setValue(oldXY[ss] + bestDir[ss] * multiple, ss);
 					XY[ss] = oldXY[ss] + bestDir[ss] * multiple;
 				}
@@ -166,7 +165,7 @@ public :
 			}
 
 			octTree->removeNode((*vect)[i],XY, 0, mgr);
-			for (int ss = 0; ss < DIMENSION; ss++){
+			for (int ss = 0; ss < dimensions; ss++){
 				(*vect)[i]->setValue(oldXY[ss] + bestDir[ss] * bestMultiple, ss);
 				XY[ss] = oldXY[ss] + bestDir[ss] * bestMultiple;
 			}
@@ -192,18 +191,18 @@ public :
 	    tstruct = *localtime(&now);
 	    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
 	    return buf;
-	}
+	 }
 
-	 OctTree* buildOctTree(nodeCollection* ncp, memoryManager* mgr){
+	 OctTree<dimensions>* buildOctTree(nodeCollection<dimensions>* ncp, memoryManager<dimensions>* mgr){
 
-		double* temp = new double[DIMENSION];
-		double* positionTemp = new double[DIMENSION];
-		double* minPos = new double[DIMENSION];
-		double* position = new double[DIMENSION];
-		double* maxPos = new double[DIMENSION];
+		double* temp = new double[dimensions];
+		double* positionTemp = new double[dimensions];
+		double* minPos = new double[dimensions];
+		double* position = new double[dimensions];
+		double* maxPos = new double[dimensions];
 
 
-		for(int i = 0; i < DIMENSION; i++){
+		for(int i = 0; i < dimensions; i++){
 			minPos[i] = 0.0f;
 			maxPos[i] = 0.0f;
 			position[i] = 0.0f;
@@ -212,42 +211,42 @@ public :
 		}
 
 
-		for (int i = 0; i < DIMENSION; i++){
+		for (int i = 0; i < dimensions; i++){
 			minPos[i] = 999999;
 			maxPos[i] = -999999;
 		}
 
-		std::vector<blackHoleNode*>* vect = ncp->getNodeVec();
+		std::vector<blackHoleNode<dimensions>*>* vect = ncp->getNodeVec();
 		for(unsigned int s = 0; s < (*vect).size(); s++){	//to search all nodes
 			if((*vect)[s]->getDegree() == 0)
 				continue;
 
-			for (int z = 0; z < DIMENSION; z++){
+			for (int z = 0; z < dimensions; z++){
 				position[z] = (*vect)[s]->getValue(z);
 			}
 
-			for (int d = 0; d < DIMENSION; d++){
+			for (int d = 0; d < dimensions; d++){
 				minPos[d] = min(position[d], minPos[d]);
 				maxPos[d] = max(position[d], maxPos[d]);
 			}
 		}
 
 		// provide additional space for moving nodes
-		for (int d = 0; d < DIMENSION; d++){
+		for (int d = 0; d < dimensions; d++){
 			double posDiff = maxPos[d] - minPos[d];
 			maxPos[d] += posDiff / 2;
 			minPos[d] -= posDiff / 2;
 		}
 		
 		// add nodes with non-zero weight to the octtree
-		OctTree* result = mgr->get_Instance();
+		OctTree<dimensions>* result = mgr->get_Instance();
 		result->setElement(NULL, temp, minPos, maxPos, mgr);
 
 		for(unsigned int s = 0; s <  (*vect).size(); s++){	//to all nodes search
-			for (int kk = 0; kk < DIMENSION; kk++){
+			for (int kk = 0; kk < dimensions; kk++){
 				positionTemp[kk] = (*vect)[s]->getValue(kk);
 			}
-			blackHoleNode* t = (*vect)[s];
+			blackHoleNode<dimensions>* t = (*vect)[s];
 			result->addNode(t, positionTemp, 0, mgr);
 		}
 

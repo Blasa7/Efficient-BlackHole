@@ -1,15 +1,14 @@
-#include "Util.hpp"
+#include <Util.hpp>
 #include <set>
 #include <vector>
 #include <string>
 #include <ctime>
 #include <cmath>
 #include <algorithm>
-#include "Dim.hpp"
-
 
 #pragma once
 
+template <uint32_t dimensions>
 class node{
 protected :
 	int nodeId;
@@ -23,7 +22,8 @@ public :
 };
 
 // Blackhole node is a node which manage neighbor information
-class blackHoleNode : public node {
+template <uint32_t dimensions>
+class blackHoleNode : public node<dimensions> {
 private :
 	int clusterId;
 	int degree;
@@ -41,7 +41,9 @@ public :
 	void setDegree(int x);
 	std::vector<int>* getEdgeSet();
 	bool findEdge(int origin, int id);
-	inline bool operator<(const blackHoleNode& i) const{
-		return nodeId < i.getID();	
+	inline bool operator<(const blackHoleNode<dimensions>& i) const{
+		return this->nodeId < i.getID();	
 	};
 };
+
+#include "blackHoleNode.cpp"

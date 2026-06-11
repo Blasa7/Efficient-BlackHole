@@ -1,76 +1,90 @@
+#pragma once
+
 #include "Util.hpp"
 #include "blackHoleNode.hpp"
-#include "Dim.hpp"
 
 
-
-blackHoleNode::~blackHoleNode(){
-	delete points;
+template <uint32_t dimensions>
+blackHoleNode<dimensions>::~blackHoleNode(){
+	delete this->points;
 }
 
-bool node::setPosition(int nI, double* ar){
+template <uint32_t dimensions>
+bool node<dimensions>::setPosition(int nI, double* ar){
 	nodeId = nI;
-	points = new double[DIMENSION];
-	for (int temp = 0; temp < DIMENSION; temp++){
+	points = new double[dimensions];
+	for (int temp = 0; temp < dimensions; temp++){
 		points[temp] = ar[temp];
 	}
 	return true;
 }
 
-int node::getID() const{
+template <uint32_t dimensions>
+int node<dimensions>::getID() const{
 	return nodeId;
 }
 
-double node::getValue(int idx){
+template <uint32_t dimensions>
+double node<dimensions>::getValue(int idx){
 	return points[idx];
 }
 
-void node::setValue(double value, int idx){
+template <uint32_t dimensions>
+void node<dimensions>::setValue(double value, int idx){
 	points[idx] = value;
 }
 
 
-double* blackHoleNode::getValues(void){
-	return points;
+template <uint32_t dimensions>
+double* blackHoleNode<dimensions>::getValues(void){
+	return this->points;
 }
 
-void blackHoleNode::setDegree(int x){
+template <uint32_t dimensions>
+void blackHoleNode<dimensions>::setDegree(int x){
 	degree = x;
 }
 
-void blackHoleNode::setClusterId(int x){
+template <uint32_t dimensions>
+void blackHoleNode<dimensions>::setClusterId(int x){
 	clusterId = x;
 }
 
-int blackHoleNode::getClusterId(){
+template <uint32_t dimensions>
+int blackHoleNode<dimensions>::getClusterId(){
 	return clusterId;
 }
 
-bool blackHoleNode::isnot_labeled(){
+template <uint32_t dimensions>
+bool blackHoleNode<dimensions>::isnot_labeled(){
 	if(clusterId == -1){
 		return false;
 	}
 	return true;
 }
 
-std::vector<int>* blackHoleNode::getEdgeSet(){
+template <uint32_t dimensions>
+std::vector<int>* blackHoleNode<dimensions>::getEdgeSet(){
 	return &eSet;
 }
 
-bool blackHoleNode::setEdge(int e){
+template <uint32_t dimensions>
+bool blackHoleNode<dimensions>::setEdge(int e){
 	eSet.push_back(e);
 	return true;
 }
 
-bool blackHoleNode::findEdge(int origin, int id){
+template <uint32_t dimensions>
+bool blackHoleNode<dimensions>::findEdge(int origin, int id){
 	return std::binary_search(eSet.begin(), eSet.end(), id);
 }
 
-blackHoleNode::blackHoleNode(int nNodeId, int ep){
-	nodeId = nNodeId;
-	points = new double[DIMENSION];
-	for (int i = 0; i < DIMENSION; i++){
-		points[i] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX)-0.5f;
+template <uint32_t dimensions>
+blackHoleNode<dimensions>::blackHoleNode(int nNodeId, int ep){
+	this->nodeId = nNodeId;
+	this->points = new double[dimensions];
+	for (int i = 0; i < dimensions; i++){
+		this->points[i] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX)-0.5f;
 	}
 	clusterId = -1;
 	degree = 1;
@@ -78,6 +92,7 @@ blackHoleNode::blackHoleNode(int nNodeId, int ep){
 }
 
 
-int blackHoleNode::getDegree(){
+template <uint32_t dimensions>
+int blackHoleNode<dimensions>::getDegree(){
 	return degree;
 }

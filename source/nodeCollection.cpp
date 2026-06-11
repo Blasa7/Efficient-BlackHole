@@ -1,30 +1,35 @@
+#pragma once
+
 #include "nodeCollection.hpp"
 
 
 
-void nodeCollection::putNode(int nNodeId, int other){
-	if(degMat[nNodeId-1] == 0){	//not exists!
-		degMat[nNodeId-1]++;
-		blackHoleNode* newNode = new blackHoleNode(nNodeId, other);
-		nodeMap[nNodeId] = newNode;
+template <uint32_t dimensions>
+void nodeCollection<dimensions>::putNode(int nNodeId, int other){
+	if(degMat[nNodeId] == 0){	//not exists!
+		degMat[nNodeId]++;
+		blackHoleNode<dimensions>* newNode = new blackHoleNode<dimensions>(nNodeId + 1, other + 1);
+		nodeMap[nNodeId + 1] = newNode;
 	}
 	else{	
-		if(nodeMap[nNodeId]->findEdge(nNodeId, other) == false){	
-			degMat[nNodeId-1]++;
-			nodeMap[nNodeId]->setEdge(other);
+		if(nodeMap[nNodeId + 1]->findEdge(nNodeId + 1, other + 1) == false){	
+			degMat[nNodeId]++;
+			nodeMap[nNodeId + 1]->setEdge(other + 1);
 		}
 	}
 }
 
-void nodeCollection::copyToVector(){
+template <uint32_t dimensions>
+void nodeCollection<dimensions>::copyToVector(){
 
-	for(std::map<int, blackHoleNode*>::iterator it = nodeMap.begin(); it != nodeMap.end(); it++){
+	for(typename std::map<int, blackHoleNode<dimensions>*>::iterator it = nodeMap.begin(); it != nodeMap.end(); it++){
 		nodeVec.push_back(it->second);
 	}
-	std::sort(nodeVec.begin(), nodeVec.end(), by_id());
+	std::sort(nodeVec.begin(), nodeVec.end(), by_id<dimensions>());
 }
 
-void nodeCollection::setAdjMat(int maxValue){
+template <uint32_t dimensions>
+void nodeCollection<dimensions>::setAdjMat(int maxValue){
 	int len = maxValue;
 	adjMat = new float*[len];
 	for(int i = 0; i < len; i++){
@@ -36,7 +41,8 @@ void nodeCollection::setAdjMat(int maxValue){
 	}
 }
 
-void nodeCollection::setDegMat(int maxValue){
+template <uint32_t dimensions>
+void nodeCollection<dimensions>::setDegMat(int maxValue){
 	int len = maxValue;
 	degMat = new int[len];
 	for(int i = 0; i < len; i++){
@@ -44,12 +50,14 @@ void nodeCollection::setDegMat(int maxValue){
 	}
 }
 
-bool nodeCollection::checkEdge(int id1_notMinus, int id2_notMinus){
+template <uint32_t dimensions>
+bool nodeCollection<dimensions>::checkEdge(int id1_notMinus, int id2_notMinus){
 	return adjMat[id1_notMinus-1][id2_notMinus-1] != 0;
 }
 
-int nodeCollection::getSumOfDegree(){
-	std::vector<blackHoleNode*>* vect = &nodeVec;
+template <uint32_t dimensions>
+int nodeCollection<dimensions>::getSumOfDegree(){
+	std::vector<blackHoleNode<dimensions>*>* vect = &nodeVec;
 	int s = 0;
 	for(unsigned int i = 0; i < nodeVec.size(); i++){
 		s += (*vect)[i]->getDegree();
@@ -58,7 +66,8 @@ int nodeCollection::getSumOfDegree(){
 }
 
 
-double nodeCollection::findInitEnergy(exponentVar& expVar, OctTree* octTree){
+template <uint32_t dimensions>
+double nodeCollection<dimensions>::findInitEnergy(exponentVar& expVar, OctTree<dimensions>* octTree){
 	
 	std::vector<blackHoleNode*>* vect = &nodeVec;
 	double s = 0.0;
@@ -69,14 +78,16 @@ double nodeCollection::findInitEnergy(exponentVar& expVar, OctTree* octTree){
 	return s;
 }
 
-void nodeCollection::degreeSet(){
-	std::vector<blackHoleNode*>* vect = &nodeVec;
+template <uint32_t dimensions>
+void nodeCollection<dimensions>::degreeSet(){
+	std::vector<blackHoleNode<dimensions>*>* vect = &nodeVec;
 	for(unsigned int i = 0; i < nodeVec.size(); i++){
 		(*vect)[i]->setDegree(degMat[i]);
 	}
 }
 
-void nodeCollection::clearAll(){
+template <uint32_t dimensions>
+void nodeCollection<dimensions>::clearAll(){
 	delete [] degMat;
 
 	for(unsigned int i = 0; i < nodeMap.size(); i++){
@@ -88,15 +99,18 @@ void nodeCollection::clearAll(){
 	nodeVec.clear();
 }
 
-std::vector<blackHoleNode*>* nodeCollection::getNodeVec(){
+template <uint32_t dimensions>
+std::vector<blackHoleNode<dimensions>*>* nodeCollection<dimensions>::getNodeVec(){
 	return &nodeVec;
 }
 
-std::map<int, blackHoleNode*>& nodeCollection::getNodeMap(){
+template <uint32_t dimensions>
+std::map<int, blackHoleNode<dimensions>*>& nodeCollection<dimensions>::getNodeMap(){
 	return nodeMap;
 }
 /*Use*/
-double nodeCollection::getEnergyR(blackHoleNode* unp, exponentVar& expVar, OctTree* tree){
+template <uint32_t dimensions>
+double nodeCollection<dimensions>::getEnergyR(blackHoleNode<dimensions>* unp, exponentVar& expVar, OctTree<dimensions>* tree){
 
 	if(tree == NULL || unp->getDegree() == 0 )
 		return 0.0;
@@ -112,7 +126,7 @@ double nodeCollection::getEnergyR(blackHoleNode* unp, exponentVar& expVar, OctTr
 	double* pos2 = tree->getValues();
 
 	double treeWidth = tree->getWidth();
-	double dist = CalculateUtil::calcDist_DIM(pos, pos2);
+	double dist = CalculateUtil::calcDist_DIM<dimensions>(pos, pos2);
 	if (dist == 0.0) return 0.0;
 
 	if ( tree->childCount > 0 && dist < 1.0 * treeWidth){
@@ -135,7 +149,8 @@ double nodeCollection::getEnergyR(blackHoleNode* unp, exponentVar& expVar, OctTr
 }
 
 /*Use*/
-double nodeCollection::addRepulsionDir(blackHoleNode* unp, double* dir, exponentVar& expVar, OctTree* tree){
+template <uint32_t dimensions>
+double nodeCollection<dimensions>::addRepulsionDir(blackHoleNode<dimensions>* unp, double* dir, exponentVar& expVar, OctTree<dimensions>* tree){
 
 	//if(tree==NULL || tree->node == NULL ||tree->node->getID() == unp->getID() || unp->getDegree() == 0)
 	if(tree==NULL ||  tree->node == unp)
@@ -154,7 +169,7 @@ double nodeCollection::addRepulsionDir(blackHoleNode* unp, double* dir, exponent
 
 	double* pos = unp->getValues();
 	double* pos2 = tree->getValues();
-	double dist = CalculateUtil::calcDist_DIM(pos, pos2);
+	double dist = CalculateUtil::calcDist_DIM<dimensions>(pos, pos2);
 
 
 	if (dist == 0.0) return 0.0;
@@ -168,17 +183,18 @@ double nodeCollection::addRepulsionDir(blackHoleNode* unp, double* dir, exponent
 
 	double tmp = repuFactor * unp->getDegree() * tree->getWeight() * pow(dist, repuExponent-2);
 
-	for (int z = 0; z < DIMENSION; z++){
+	for (int z = 0; z < dimensions; z++){
 		dir[z] -= (pos2[z] - pos[z]) * tmp;
 	}
 	return tmp * abs(repuExponent-1);
 }	
 
 /*Use*/
-double nodeCollection::getEnergyAA(blackHoleNode* unp, exponentVar& expVar, OctTree* tree){
+template <uint32_t dimensions>
+double nodeCollection<dimensions>::getEnergyAA(blackHoleNode<dimensions>* unp, exponentVar& expVar, OctTree<dimensions>* tree){
 	
 	double attrExponent = expVar.getAttrExponent();
-	std::vector<blackHoleNode*>* vect = &nodeVec;
+	std::vector<blackHoleNode<dimensions>*>* vect = &nodeVec;
 	
 	double* pos = unp->getValues();
 
@@ -189,7 +205,7 @@ double nodeCollection::getEnergyAA(blackHoleNode* unp, exponentVar& expVar, OctT
 	for(unsigned int i = 0; i < (*edgeList).size(); i++){
 		int value = (*edgeList)[i]-1;
 		double* pos2 = (*vect)[value]->getValues();
-		double dst = CalculateUtil::calcDist_DIM(pos, pos2);
+		double dst = CalculateUtil::calcDist_DIM<dimensions>(pos, pos2);
 		if (attrExponent == 0.0){
 			energy += log(dst);
 		}
@@ -202,9 +218,10 @@ double nodeCollection::getEnergyAA(blackHoleNode* unp, exponentVar& expVar, OctT
 
 
 /*Use*/
-double nodeCollection::addAttractionDirA(blackHoleNode* unp, double* dir, exponentVar& expVar, OctTree* tree){
+template <uint32_t dimensions>
+double nodeCollection<dimensions>::addAttractionDirA(blackHoleNode<dimensions>* unp, double* dir, exponentVar& expVar, OctTree<dimensions>* tree){
 	
-	std::vector<blackHoleNode*>* vect = &nodeVec;
+	std::vector<blackHoleNode<dimensions>*>* vect = &nodeVec;
 	
 	double attrExponent = expVar.getAttrExponent();
 
@@ -218,13 +235,13 @@ double nodeCollection::addAttractionDirA(blackHoleNode* unp, double* dir, expone
 	for(unsigned int i = 0; i <  (*edgeList).size(); i++){
 		int value = (*edgeList)[i]-1;
 		double* pos2 = (*vect)[value]->getValues();
-		double dist = CalculateUtil::calcDist_DIM(pos, pos2);
+		double dist = CalculateUtil::calcDist_DIM<dimensions>(pos, pos2);
 		if(dist == 0.0){
 			continue;
 		}
 		double tmp = pow(dist, attrExponent-2);
 		
-		for (int z = 0; z < DIMENSION; z++){
+		for (int z = 0; z < dimensions; z++){
 			dir[z] += (pos2[z] - pos[z]) * tmp;
 		}
 	}
@@ -233,7 +250,8 @@ double nodeCollection::addAttractionDirA(blackHoleNode* unp, double* dir, expone
 
 
 /*Use*/
-double nodeCollection::getEnergy(blackHoleNode* unp, exponentVar& expVar, OctTree* tree){
+template <uint32_t dimensions>
+double nodeCollection<dimensions>::getEnergy(blackHoleNode<dimensions>* unp, exponentVar& expVar, OctTree<dimensions>* tree){
 	double gr = getEnergyR(unp, expVar, tree);
 	double ga = getEnergyAA(unp, expVar, tree);
 	
@@ -241,13 +259,14 @@ double nodeCollection::getEnergy(blackHoleNode* unp, exponentVar& expVar, OctTre
 }
 
 /*Use*/
-void nodeCollection::setDir(blackHoleNode* unp, double* dir, exponentVar& expVar, OctTree* tree){
+template <uint32_t dimensions>
+void nodeCollection<dimensions>::setDir(blackHoleNode<dimensions>* unp, double* dir, exponentVar& expVar, OctTree<dimensions>* tree){
 	addRepulsionDir(unp, dir, expVar, tree);
 	addAttractionDirA(unp, dir, expVar, tree);
 }
 
-
-void nodeCollection::clearClusterId(){
+template <uint32_t dimensions>
+void nodeCollection<dimensions>::clearClusterId(){
 	std::vector<blackHoleNode*>* vect = &nodeVec;
 	for (unsigned int i = 0; i < nodeVec.size(); i++){
 		(*vect)[i]->setClusterId(-1);

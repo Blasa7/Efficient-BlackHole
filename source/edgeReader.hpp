@@ -5,9 +5,10 @@
 #include <vector>
 #include <cstring>
 #include <cstdlib>
-#include "nodeCollection.hpp"
+#include <nodeCollection.hpp>
 #pragma once
 
+template <uint32_t dimensions>
 class edgeReader{
 private :
 	std::ofstream outputFileStream;
@@ -16,7 +17,7 @@ private :
 public :
 
 	// Read edgelist input file
-	inline void readFile(char* filePath, nodeCollection* ncp){
+	inline void readFile(const char* filePath, nodeCollection<dimensions>* ncp){
 		inputFileStream1.open(filePath);
 		std::string line;
 		std::string x, y, del;
@@ -50,6 +51,7 @@ public :
 			std::cout<<"Error Occured!"<<std::endl;
 		}
 
+		maxValue += 1; // To account for input starting from 0 index.
 
 		ncp->setDegMat(maxValue);	//Make degMatrix
 		inputFileStream1.seekg(0, inputFileStream1.beg);		//to read again
@@ -81,12 +83,12 @@ public :
 	}
 
 	// Write information to output file
-	inline void writeFile(char* filePath, nodeCollection* ncp){
+	inline void writeFile(char* filePath, nodeCollection<dimensions>* ncp){
 		outputFileStream.open(filePath);
-		std::vector<blackHoleNode*>* vect = ncp->getNodeVec();
+		std::vector<blackHoleNode<dimensions>*>* vect = ncp->getNodeVec();
 		for(unsigned int i = 0; i < (*vect).size(); i++){
 			outputFileStream << (*vect)[i]->getID() << "\t";
-			for (int p = 0; p < DIMENSION; p++){
+			for (int p = 0; p < dimensions; p++){
 				outputFileStream << (*vect)[i]->getValue(p) << "\t";
 			}
 			//outputFileStream <<(*vect)[i]->getClusterId()<<std::endl;

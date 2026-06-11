@@ -1,45 +1,52 @@
+#pragma once
 
 #include "memoryManager.hpp"
 
-#include "Dim.hpp"
-
-memoryManager::memoryManager(int nodeNum){
+template <uint32_t dimensions>
+memoryManager<dimensions>::memoryManager(int nodeNum){
 	current = 0;
 	child_current = 0;
 	maxNum = nodeNum * 12;
 	prior = -1;
-	temp = new OctTree[maxNum];
+	temp = new OctTree<dimensions>[maxNum];
 	
 	for(int j = 0; j < maxNum; j++){
-		childVec.push_back(new OctTree*[(int)pow(2.0, DIMENSION)]);
+		childVec.push_back(new OctTree<dimensions>*[(int)pow(2.0, dimensions)]);
 	}
 }
 
-OctTree** memoryManager::get_children(){
+template <uint32_t dimensions>
+OctTree<dimensions>** memoryManager<dimensions>::get_children(){
 	return childVec[child_current++];
 }
 
-OctTree* memoryManager::get_Instance(){
+template <uint32_t dimensions>
+OctTree<dimensions>* memoryManager<dimensions>::get_Instance(){
 	return &(temp[current++]);
 }
 
-int memoryManager::getCurrent(){
+template <uint32_t dimensions>
+int memoryManager<dimensions>::getCurrent(){
 	return current;
 }
 
-int memoryManager::getChildCurrent(){
+template <uint32_t dimensions>
+int memoryManager<dimensions>::getChildCurrent(){
 	return child_current;
 }
 
-void memoryManager::setCurrent(int x){
+template <uint32_t dimensions>
+void memoryManager<dimensions>::setCurrent(int x){
 	current = x;
 }
 
-void memoryManager::setChildCurrent(int x){
+template <uint32_t dimensions>
+void memoryManager<dimensions>::setChildCurrent(int x){
 	child_current = x;
 }
 
-void memoryManager::dealloc(){
+template <uint32_t dimensions>
+void memoryManager<dimensions>::dealloc(){
 
 	delete[] temp;
 
@@ -51,24 +58,27 @@ void memoryManager::dealloc(){
 	childVec.clear();
 }
 
-void memoryManager::takeAPicture(){
+template <uint32_t dimensions>
+void memoryManager<dimensions>::takeAPicture(){
 	prior = current;
 }
 
-void memoryManager::restore(){
+template <uint32_t dimensions>
+void memoryManager<dimensions>::restore(){
 	current = prior;
 	child_current = prior;
 }
 
-void memoryManager::swap(OctTree* swapper){
+template <uint32_t dimensions>
+void memoryManager<dimensions>::swap(OctTree<dimensions>* swapper){
 	if(prior == -1 && current == prior)
 		return;
 	prior++;
-	OctTree s = *swapper;
+	OctTree<dimensions> s = *swapper;
 	*swapper = temp[prior];
 	temp[prior] = s;
 
-	OctTree** ss = swapper->children;
+	OctTree<dimensions>** ss = swapper->children;
 	swapper->children = temp[prior].children;
 	temp[prior].children = ss;
 }
