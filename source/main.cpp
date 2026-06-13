@@ -7,6 +7,10 @@
 #include <string>
 #include <cstdlib>
 #include <chrono>
+#include <point.hpp>
+#include <quadtree.hpp>
+#include <projection_simulation.hpp>
+#include <common.hpp>
 
 constexpr uint32_t BLACKHOLE_DIMENSIONS = 3;
 constexpr float BLACKHOLE_ALPHA = 0.0f;
@@ -17,6 +21,9 @@ const std::string inputPath = "..\\input\\10000.dat";
 const std::string outputPath = "..\\output\\result.dat";
 
 int main(){
+	Point<1> t = Point<1>();
+	//Quadtree<1, 10> t1;
+
 	using Clock = std::chrono::high_resolution_clock;
 
 	auto start = Clock::now();
@@ -33,12 +40,21 @@ int main(){
 
 	std::cout<<"Pruning Factor: "<< BLACKHOLE_PRUNING_FRACTION << '\n';
 
-	ClusterPlay<BLACKHOLE_DIMENSIONS> cp;
+	//ClusterPlay<BLACKHOLE_DIMENSIONS> cp;
 
-	cp.play(inputPath.c_str(), BLACKHOLE_ALPHA, outputPath.c_str());
+	//cp.play(inputPath.c_str(), BLACKHOLE_ALPHA, outputPath.c_str());
+
+	uint32_t nodeNum = 0;
+	EdgeList edgeList = parseEdgeList(inputPath, nodeNum);
+
+	AdjacencyList adjacencyList = edgeListToAdjacencyList(edgeList, nodeNum);
+
+	ProjectionSimulation<BLACKHOLE_DIMENSIONS> projectionSimulation(adjacencyList, true);
+
+	projectionSimulation.simulateAllIterations();
 
 	// DBSCAN
-	DBscanPlay<BLACKHOLE_DIMENSIONS>::dbscanCalculator(outputPath.c_str(), BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION);
+	DBscanPlay<BLACKHOLE_DIMENSIONS>::dbscanCalculator(projectionSimulation.getResult(), nodeNum, BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION);
 	
 	auto end = Clock::now();
 	auto bhduration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

@@ -10,6 +10,7 @@
 #include <set>
 #include <sstream>
 #include <cstring>
+#include <point.hpp>
 
 const double PI = 3.141592653589793238463;
 
@@ -35,19 +36,21 @@ double calcDist(float* a[], int i, int j ){
 template <uint32_t dimensions>
 class DBscanPlay{
 public :
-	static void dbscanCalculator(const char * inputFile, int minPts, float removePercentage){
+	//static void dbscanCalculator(const char * inputFile, int minPts, float removePercentage){
+	template <uint32_t dimensions>
+	static void dbscanCalculator(const Point<dimensions>* inPoints, int nodeNum, int minPts, float removePercentage) {
 
 		clock_t start_time, end_time;	  // clock_t
 		start_time = clock();				  // Start_Time
 
-		int nodeNum = 0;
+		//int nodeNum = 0;
 		char oneLine[256];
 		std::string line;
 		std::string x, y, z, z_1, del, cluster;
 
 		std::ifstream nodeToCommunity1; 	std::ifstream nodeToCommunity2;
 		std::ofstream ofs;		std::ofstream distanceOutputStream;
-		std::string inputFileName(inputFile);
+		//std::string inputFileName(inputFile);
 
 		std::stringstream out;
 		out << minPts;
@@ -56,23 +59,23 @@ public :
 		ss << removePercentage * 100;
 		std::string removeP(ss.str());
 
-		nodeToCommunity1.open(inputFile);
+		//nodeToCommunity1.open(inputFile);
 
-		if (nodeToCommunity1.is_open()){//calc maximal cluster size
-			while (getline(nodeToCommunity1, line)){
-				strcpy(oneLine, line.c_str());
-				del = strtok(oneLine, "\t ");
-				x = strtok(NULL, "\t ");
-				y = strtok(NULL, "\t ");
-				nodeNum++;
-			}
-		}
-		else{
-			std::cout << "can't read file" << std::endl;
-		}
+		//if (nodeToCommunity1.is_open()){//calc maximal cluster size
+		//	while (getline(nodeToCommunity1, line)){
+		//		strcpy(oneLine, line.c_str());
+		//		del = strtok(oneLine, "\t ");
+		//		x = strtok(NULL, "\t ");
+		//		y = strtok(NULL, "\t ");
+		//		nodeNum++;
+		//	}
+		//}
+		//else{
+		//	std::cout << "can't read file" << std::endl;
+		//}
 
-		nodeToCommunity1.close();
-		nodeToCommunity2.open(inputFile);
+		//nodeToCommunity1.close();
+		//nodeToCommunity2.open(inputFile);
 
 		int* communitySelf = new int[nodeNum];
 
@@ -96,23 +99,29 @@ public :
 			isSeed[ttt] = false;
 		}
 
-		int counter = 0;
-		std::string tempVar;
-		if (nodeToCommunity2.is_open()){
-			while (getline(nodeToCommunity2, line)){
-				strcpy(oneLine, line.c_str());
-				del = strtok(oneLine, "\t ");
-				for(int j = 0; j < dimensions; j++){
-					tempVar = strtok(NULL, "\t ");
-					points[j][counter] = atof(tempVar.c_str());
-				}
-				counter++;
+		for (int i = 0; i < nodeNum; ++i) {
+			for (int j = 0; j < dimensions; ++j) {
+				points[j][i] = inPoints[i][j];
 			}
 		}
 
-		else{
-			std::cout << "can't read file" << std::endl;
-		}
+		//int counter = 0;
+		//std::string tempVar;
+		//if (nodeToCommunity2.is_open()){
+		//	while (getline(nodeToCommunity2, line)){
+		//		strcpy(oneLine, line.c_str());
+		//		del = strtok(oneLine, "\t ");
+		//		for(int j = 0; j < dimensions; j++){
+		//			tempVar = strtok(NULL, "\t ");
+		//			points[j][counter] = atof(tempVar.c_str());
+		//		}
+		//		counter++;
+		//	}
+		//}
+
+		//else{
+		//	std::cout << "can't read file" << std::endl;
+		//}
 
 		float* dist_vec = new float[nodeNum];
 		float* dist_sorted = new float[nodeNum];
@@ -287,15 +296,16 @@ public :
 		end_time = clock();				   // End_Time
 
 
-		std::ostringstream oout;
-		oout << eps;
-		std::string varAs = oout.str();
-		std::string outputname = inputFileName + "_MinPts_" + out.str() + "_RemovePercent_" + removeP + "_EPS_" + varAs + ".dat";
-		ofs.open(outputname.c_str());
-		for (int z = 0; z< nodeNum; z++){
-			ofs << z + 1 << "\t" << communityInfo[z] << "\t" << isSeed[z] << std::endl;
-		}
+		//std::ostringstream oout;
+		//oout << eps;
+		//std::string varAs = oout.str();
+		//std::string outputname = inputFileName + "_MinPts_" + out.str() + "_RemovePercent_" + removeP + "_EPS_" + varAs + ".dat";
+		//ofs.open(outputname.c_str());
+		//for (int z = 0; z< nodeNum; z++){
+		//	ofs << z + 1 << "\t" << communityInfo[z] << "\t" << isSeed[z] << std::endl;
+		//}
 
+		
 		printf("Time : %f\n", ((double)(end_time - start_time)) / CLOCKS_PER_SEC);
 		printf("######################################\nDBSCAN IS FINISHED!");
 
