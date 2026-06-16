@@ -11,6 +11,7 @@
 template <uint32_t dimensions, uint32_t maxDepth>
 class QuadtreePointHandle;
 
+// Quadtree for arbitrary dimensions.
 template <uint32_t dimensions, uint32_t maxDepth>
 class Quadtree {
 public:
@@ -19,15 +20,18 @@ public:
 		if (depth == maxDepth) {
 			maxPointCount = 4; // Preallocate a little bit more space.
 		}
-		// We have child Quadtrees but no points.
+		// We have child Quadtrees but no more than 1 point.
 		else {
-			children = new Quadtree<dimensions, maxDepth>*[childCount];
-			for (int i = 0; i < childCount; ++i) {
-				children[i] = nullptr;
-			}
+			// We are only allocating the space and not actually constructor the children for two reasons. 
+			// 1. Many children may never actually get used. 
+			// 2. If children get constructed immediately it would cascade down to a full tree containing childCount ^ maxDepth which is way more nodes than likely needed. 
+			children = static_cast<Quadtree<dimensions, maxDepth>*>(std::malloc(childCount * sizeof(Quadtree<dimensions, maxDepth>)));
 		}
 
 		points = static_cast<Point<dimensions>*>(std::malloc(maxPointCount * sizeof(Point<dimensions>)));
+
+		float maxWidth = calculateMaxWidth();
+		maxWidthSquared = maxWidth * maxWidth;
 	}
 
 	~Quadtree() {
@@ -35,10 +39,13 @@ public:
 
 		if (children != nullptr) {
 			for (int i = 0; i < childCount; ++i) {
-				delete children[i];
+				//delete children[i];
+				if (childCreated[i]) {
+					children[i].~Quadtree();
+				}
 			}
 
-			delete[] children;
+			std::free(children);
 		}
 	}
 
@@ -75,13 +82,13 @@ public:
 				}
 
 				// Create the child Quadtrees if they dont exist yet.
-				if (children[childIndexOld] == nullptr) {
-					children[childIndexOld] = new Quadtree<dimensions, maxDepth>(childMinCoordinatesOld, childMaxCoordinatesOld, depth + 1, this);
+				if (!childCreated[childIndexOld]) {
+					new (&children[childIndexOld]) Quadtree<dimensions, maxDepth>(childMinCoordinatesOld, childMaxCoordinatesOld, depth + 1, this);
+					childCreated[childIndexOld] = true;
 				}
 
-
 				// Insert the points into the children and store the handle for efficient deletion.
-				pointHandle = children[childIndexOld]->addPoint(points[0], weight);
+				pointHandle = children[childIndexOld].addPoint(points[0], weight);
 
 				maxPointCount = 0; // Effectively marking this node as already split.
 			}
@@ -107,12 +114,13 @@ public:
 			}
 
 			// Create the child Quadtrees if they dont exist yet.
-			if (children[childIndexNew] == nullptr) {
-				children[childIndexNew] = new Quadtree<dimensions, maxDepth>(childMinCoordinatesNew, childMaxCoordinatesNew, depth + 1, this);
+			if (!childCreated[childIndexNew]) {
+				new (&children[childIndexNew]) Quadtree<dimensions, maxDepth>(childMinCoordinatesNew, childMaxCoordinatesNew, depth + 1, this);
+				childCreated[childIndexNew] = true;
 			}
 
 			// Insert the points into the children.
-			result = children[childIndexNew]->addPoint(point, weighting);
+			result = children[childIndexNew].addPoint(point, weighting);
 		}
 
 		// Update the centre of mass.
@@ -139,10 +147,12 @@ public:
 
 
 private:
+	static constexpr uint32_t childCount = 1 << dimensions;
+
 	Quadtree<dimensions, maxDepth>* parent;
 
-	Quadtree<dimensions, maxDepth>** children = nullptr;
-	static constexpr uint32_t childCount = 1 << dimensions;
+	Quadtree<dimensions, maxDepth>* children = nullptr;
+	bool childCreated[childCount] = {};
 
 	Point<dimensions>* points = nullptr; // Only leaves will get values. Used with std::malloc, std::free and std::realloc, do not use delete[] or new[].
 
@@ -155,6 +165,7 @@ private:
 
 	Point<dimensions> minCoordinates;
 	Point<dimensions> maxCoordinates;
+	float maxWidthSquared;
 
 	Point<dimensions> centreOfMass = Point<dimensions>(); // Zero constructor.
 	float weight = 0.0;
@@ -226,7 +237,6 @@ private:
 	// Calculates the repulsive energy omitting the constant multipliers.
 	float calculateUnscaledRepulsiveEnergy(const Point<dimensions>& point, const float repulsiveExponent) {
 		float squaredDistance = Point<dimensions>::squaredDistance(point, centreOfMass);
-		float maxWidth = calculateMaxWidth(); // Can be precomputed.
 
 		// A point may not repel itself.
 		if (squaredDistance == 0.0f) {
@@ -235,7 +245,7 @@ private:
 
 		// If we can consider this branch as a single mass. Leaf nodes may also be considered as a single mass. 
 		// Leaf nodes may either be at maximum depth or contain exactly one point.
-		if (squaredDistance >= maxWidth * maxWidth || depth == maxDepth || maxPointCount == 1) {
+		if (squaredDistance >= maxWidthSquared || depth == maxDepth || maxPointCount == 1) {
 			if (repulsiveExponent == 0.0f) {
 				// We use the squared distance instead of the normal distance and thus add a factor 0.5f.
 				return weight * 0.5f * std::logf(squaredDistance);
@@ -250,8 +260,8 @@ private:
 		float energy = 0.0f;
 
 		for (int i = 0; i < childCount; ++i) {
-			if (children[i] != nullptr) {
-				energy += children[i]->calculateUnscaledRepulsiveEnergy(point, repulsiveExponent);
+			if (childCreated[i]) {
+				energy += children[i].calculateUnscaledRepulsiveEnergy(point, repulsiveExponent);
 			}
 		}
 
@@ -261,7 +271,6 @@ private:
 	// Calculates the repulsive direction omitting the constant multipliers.
 	Point<dimensions> calculateUnscaledRepulsiveDirection(const Point<dimensions>& point, const float repulsiveExponent) {
 		float squaredDistance = Point<dimensions>::squaredDistance(point, centreOfMass);
-		float maxWidth = calculateMaxWidth(); // Can be precomputed.
 
 		if (squaredDistance == 0.0f) {
 			return Point<dimensions>();
@@ -269,7 +278,7 @@ private:
 
 		// If we can consider this branch as a single mass. Leaf nodes may also be considered as a single mass. 
 		// Leaf nodes may either be at maximum depth or contain exactly one point.
-		if (squaredDistance >= maxWidth * maxWidth || depth == maxDepth || maxPointCount == 1) {
+		if (squaredDistance >= maxWidthSquared || depth == maxDepth || maxPointCount == 1) {
 			Point<dimensions> direction;
 
 			for (int i = 0; i < dimensions; ++i) {
@@ -286,8 +295,8 @@ private:
 		Point<dimensions> direction = Point<dimensions>();
 
 		for (int i = 0; i < childCount; ++i) {
-			if (children[i] != nullptr) {
-				direction.add(children[i]->calculateUnscaledRepulsiveDirection(point, repulsiveExponent));
+			if (childCreated[i]) {
+				direction.add(children[i].calculateUnscaledRepulsiveDirection(point, repulsiveExponent));
 			}
 		}
 
@@ -306,6 +315,9 @@ private:
 
 		return maxWidth;
 	}
+
+	// Dont allow reassignment as we are manually managing some memory that would not get freed in such cases corrupting the heap.
+	Quadtree& operator=(const Quadtree&) = delete; 
 
 	// Allow the handle class to remove points.
 	friend class QuadtreePointHandle<dimensions, maxDepth>;

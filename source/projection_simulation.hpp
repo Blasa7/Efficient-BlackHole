@@ -18,7 +18,7 @@
 template <uint32_t dimensions>
 class ProjectionSimulation {
 public:
-	ProjectionSimulation(const AdjacencyList& adjacencyList, bool storeIntermediateResults) : adjacencyList(adjacencyList), storeIntermediateResults(storeIntermediateResults) {
+	ProjectionSimulation(const AdjacencyList& adjacencyList, bool storeIntermediateResults) : adjacencyList(adjacencyList), storeIntermediateResults(storeIntermediateResults) {		
 		// First uniformly distribute the points.
 		Point<dimensions>* points = static_cast<Point<dimensions>*>(std::malloc(adjacencyList.size() * sizeof(Point<dimensions>)));;// new Point<dimensions>[adjacencyList.size()];
 
@@ -38,11 +38,9 @@ public:
 
 		repulsionFactor = 1.0f / totalDegree * std::powf(totalDegree, 0.5f * (attractionExponent - repulsionExponent));
 
-		// Calculate initial energy.
-		
 		// Must find the minCoordinate and maxCoordinate for every iteration as we rebuild the quadtree. Could also search for it in the octree from the previuous iteration.
-		Point<dimensions> minCoordinate = points[0];
-		Point<dimensions> maxCoordinate = points[0];
+		minCoordinate = points[0];
+		maxCoordinate = points[0];
 
 		for (int i = 0; i < adjacencyList.size(); ++i) {
 			for (int j = 0; j < dimensions; ++j) {
@@ -56,15 +54,28 @@ public:
 			}
 		}
 
+		// Provide padding for the points to move around.
+		for (int i = 0; i < dimensions; ++i) {
+			float padding = (maxCoordinate[i] - minCoordinate[i]) / 2;
+
+			maxCoordinate[i] += padding;
+			minCoordinate[i] -= padding;
+		}
+
+		std::cout << "initial maximum coordinate x: " << std::to_string(maxCoordinate[0]) << '\n';
+
 		// Build the quadtree.
-		Quadtree<dimensions, MAX_QUADTREE_DEPTH> quadtree(minCoordinate, maxCoordinate, 0, nullptr);
+		quadtree = new Quadtree<dimensions, MAX_QUADTREE_DEPTH>(minCoordinate, maxCoordinate, 0, nullptr);
+
+		// Calculate initial energy.
+		handles.reserve(adjacencyList.size());
 
 		for (int i = 0; i < adjacencyList.size(); ++i) {
-			quadtree.addPoint(points[i], adjacencyList[i].size());
+			handles.push_back(quadtree->addPoint(points[i], adjacencyList[i].size()));
 		}
 
 		for (int i = 0; i < adjacencyList.size(); ++i) {
-			totalEnergy += quadtree.calculateRepulsiveEnergy(points[i], repulsionFactor, adjacencyList[i].size(), repulsionExponent) + calculateAttractiveEnergy(i);
+			totalEnergy += quadtree->calculateRepulsiveEnergy(points[i], repulsionFactor, adjacencyList[i].size(), repulsionExponent) + calculateAttractiveEnergy(i);
 		}
 
 		std::cout << "Initial Energy: " << totalEnergy << '\n';
@@ -80,7 +91,7 @@ public:
 		for (int i = iteration; i < maxIterations; ++i) {
 			simulateIteration();
 
-			std::cout << "Iteration: " << i <<"\tEnergy: " << totalEnergy << "\tAttraction: " << attractionExponent << "\tRepulsion: " << repulsionExponent << '\n';
+			std::cout << "Iteration: " << i <<"     Energy: " << totalEnergy << "     Attraction: " << attractionExponent << "     Repulsion : " << repulsionExponent << '\n';
 		}
 	}
 
@@ -101,31 +112,48 @@ public:
 		}
 
 		// Must find the minCoordinate and maxCoordinate for every iteration as we rebuild the quadtree. Could also search for it in the octree from the previuous iteration.
-		Point<dimensions> minCoordinate = points[0];
-		Point<dimensions> maxCoordinate = points[0];
+		Point<dimensions> newMinCoordinate = points[0];
+		Point<dimensions> newMaxCoordinate = points[0];
+		
+		bool remakeQuadTree = false;
 
 		for (int i = 0; i < adjacencyList.size(); ++i) {
 			for (int j = 0; j < dimensions; ++j) {
 				if (points[i][j] < minCoordinate[j]) {
 					minCoordinate[j] = points[i][j];
+					remakeQuadTree = true;
 				}
 
 				if (points[i][j] > maxCoordinate[j]) {
 					maxCoordinate[j] = points[i][j];
+					remakeQuadTree = true;
 				}
 			}
 		}
-		
-		// Build the quadtree.
-		Quadtree<dimensions, MAX_QUADTREE_DEPTH> quadtree(minCoordinate, maxCoordinate, 0, nullptr);
 
-		std::vector<QuadtreePointHandle<dimensions, MAX_QUADTREE_DEPTH>> handles;
-		handles.reserve(adjacencyList.size());
 
-		for (int i = 0; i < adjacencyList.size(); ++i) {
-			handles.push_back(quadtree.addPoint(points[i], adjacencyList[i].size()));
+		// Rebuild the quadtree.
+		if (remakeQuadTree) {
+			// Provide padding for the points to move around.
+			for (int i = 0; i < dimensions; ++i) {
+				float padding = (maxCoordinate[i] - minCoordinate[i]) / 2;
+
+				newMaxCoordinate[i] += padding;
+				newMinCoordinate[i] -= padding;
+			}
+
+			delete quadtree;
+
+			quadtree = new Quadtree<dimensions, MAX_QUADTREE_DEPTH>(newMinCoordinate, newMaxCoordinate, 0, nullptr);
+
+			minCoordinate = newMinCoordinate;
+			maxCoordinate = newMaxCoordinate;
+
+			for (int i = 0; i < adjacencyList.size(); ++i) {
+				handles[i] = quadtree->addPoint(points[i], adjacencyList[i].size());
+			}
 		}
-
+		
 		adjustExponents();
 
 		// Simulate the movement of every point in series.
@@ -136,7 +164,7 @@ public:
 			Point<dimensions> direction;
 
 			// Repulsive direction contribution.
-			direction.add(quadtree.calculateRepulsiveDirection(point, repulsionFactor, adjacencyList[i].size(), repulsionExponent));
+			direction.add(quadtree->calculateRepulsiveDirection(point, repulsionFactor, adjacencyList[i].size(), repulsionExponent));
 
 			// Attractive direction contribution.
 			for (int j = 0; j < adjacencyList[i].size(); ++j) {
@@ -165,7 +193,7 @@ public:
 			float weighting = adjacencyList[i].size();
 
 			int bestScale = 0;
-			float bestEnergy = quadtree.calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
+			float bestEnergy = quadtree->calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
 
 			Point<dimensions> oldPosition = point;
 
@@ -181,10 +209,10 @@ public:
 					point[j] = oldPosition[j] + direction[j] * scale;
 				}
 
-				handles[i] = quadtree.addPoint(point, weighting);
+				handles[i] = quadtree->addPoint(point, weighting);
 
 				// Fairly expensive energy calculation call, could look into incremental energy delta computation.
-				float newEnergy = quadtree.calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
+				float newEnergy = quadtree->calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
 
 				if (newEnergy < bestEnergy) {
 					bestEnergy = newEnergy;
@@ -204,10 +232,10 @@ public:
 					point[j] = oldPosition[j] + direction[j] * scale;
 				}
 
-				handles[i] = quadtree.addPoint(point, weighting);
+				handles[i] = quadtree->addPoint(point, weighting);
 
 				// Fairly expensive energy calculation call, could look into incremental energy delta computation.
-				float newEnergy = quadtree.calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
+				float newEnergy = quadtree->calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
 
 				if (newEnergy < bestEnergy) {
 					bestEnergy = newEnergy;
@@ -222,7 +250,7 @@ public:
 				point[j] = oldPosition[j] + direction[j] * bestScale;
 			}
 
-			handles[i] = quadtree.addPoint(point, weighting);
+			handles[i] = quadtree->addPoint(point, weighting);
 
 			totalEnergy += bestEnergy;
 		}
@@ -243,22 +271,31 @@ private:
 	const AdjacencyList& adjacencyList;
 
 	bool storeIntermediateResults;
-
+	
 	std::vector<Point<dimensions>*> results;
 
 	float repulsionFactor; // Set in constructor.
 
 	// BlackHole constants.
-	float attractionExponent = -0.05f;
+	float attractionExponent = 0.00f;
 	float repulsionExponent = 0.0f;
 
-	float attractionExponentFinal = -0.05f;
+	float attractionExponentFinal = 0.00f;
 	float repulsionExponentFinal = 0.0f;
 
 	uint32_t maxIterations = 100;
 	uint32_t iteration = 0;
 
 	float totalEnergy = 0.0f;
+
+	Point<dimensions> minCoordinate;
+	Point<dimensions> maxCoordinate;
+
+	// Reuse between iterations.
+	Quadtree<dimensions, MAX_QUADTREE_DEPTH>* quadtree = nullptr;
+	std::vector<QuadtreePointHandle<dimensions, MAX_QUADTREE_DEPTH>> handles;
+
+
 	
 
 	void adjustExponents() {
