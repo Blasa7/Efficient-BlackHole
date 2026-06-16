@@ -18,6 +18,10 @@ public:
 		}
 	}
 
+	const float* data() const {
+		return position;
+	}
+
 	// Sum to current point.
 	void add(const Point<dimensions>& point) {
 		for (int i = 0; i < dimensions; ++i) {
@@ -50,7 +54,7 @@ public:
 	inline float& operator[](size_t i) { return position[i]; }
 	inline const float& operator[](std::size_t i) const { return position[i]; }
 
-private:
+protected:
 	// Position values, can be indexed by dimension.
 	float position[dimensions];
 };

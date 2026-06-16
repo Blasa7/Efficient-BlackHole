@@ -194,7 +194,6 @@ public:
 
 			int bestScale = 0;
 			float bestEnergy = quadtree->calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
-			Point<dimensions> newBestPosition;
 
 			Point<dimensions> oldPosition = point;
 
@@ -218,7 +217,6 @@ public:
 				if (newEnergy < bestEnergy) {
 					bestEnergy = newEnergy;
 					bestScale = scale;
-					newBestPosition = point;
 				}
 			}
 
@@ -242,14 +240,15 @@ public:
 				if (newEnergy < bestEnergy) {
 					bestEnergy = newEnergy;
 					bestScale = scale;
-					newBestPosition = point;
 				}
 			}
 
 			// Remove and add back with the best scale.
 			handles[i].removePoint(point, weighting);
 
-			point = newBestPosition;
+			for (int j = 0; j < dimensions; ++j) {
+				point[j] = oldPosition[j] + direction[j] * bestScale;
+			}
 
 			handles[i] = quadtree->addPoint(point, weighting);
 
@@ -327,10 +326,6 @@ private:
 			const Point<dimensions>& neighbor = results.back()[adjacencyList[index][j]];
 
 			float squaredDistance = Point<dimensions>::squaredDistance(point, neighbor);
-
-			if (squaredDistance == 0.0f) {
-				continue;
-			}
 
 			if (attractionExponent == 0.0f) {
 				// We use the squared distance instead of the normal distance and thus add a factor 0.5f.

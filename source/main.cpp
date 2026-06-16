@@ -11,6 +11,7 @@
 #include <quadtree.hpp>
 #include <projection_simulation.hpp>
 #include <common.hpp>
+#include <dbscan.hpp>
 
 constexpr uint32_t BLACKHOLE_DIMENSIONS = 3;
 constexpr float BLACKHOLE_ALPHA = 0.0f;
@@ -54,7 +55,13 @@ int main(){
 	projectionSimulation.simulateAllIterations();
 
 	// DBSCAN
-	DBscanPlay<BLACKHOLE_DIMENSIONS>::dbscanCalculator(projectionSimulation.getResult(), nodeNum, BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION);
+	Point<BLACKHOLE_DIMENSIONS>* points = projectionSimulation.getResult();
+	int* clusters = new	int[nodeNum]; // The resulting communities.
+
+	dbscan(points, clusters, nodeNum, BLACKHOLE_MIN_PTS, estimateEpsilon(points, nodeNum, BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION));
+	
+
+	//DBscanPlay<BLACKHOLE_DIMENSIONS>::dbscanCalculator(projectionSimulation.getResult(), nodeNum, BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION);
 	
 	auto end = Clock::now();
 	auto bhduration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

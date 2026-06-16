@@ -4,8 +4,7 @@
 
 // Helper for generating fairly good quality random numbers.
 namespace random {
-	//thread_local std::mt19937 rng(std::random_device{}()); // Thread local to allow multithreaded use.
-	thread_local std::mt19937 rng(0); // Thread local to allow multithreaded use. Fixed seed for experimental purposes.
+	thread_local std::mt19937 rng(std::random_device{}()); // Thread local to allow multithreaded use.
 
 	inline int range(int min, int max) {
 		return std::uniform_int_distribution<int>(min, max)(rng);
