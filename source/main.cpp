@@ -49,7 +49,7 @@ int main(){
 
 	AdjacencyList adjacencyList = edgeListToAdjacencyList(edgeList, nodeNum);
 
-	ProjectionSimulation<BLACKHOLE_DIMENSIONS> projectionSimulation(adjacencyList, true);
+	ProjectionSimulation<BLACKHOLE_DIMENSIONS> projectionSimulation(adjacencyList, false);
 
 	projectionSimulation.simulateAllIterations();
 

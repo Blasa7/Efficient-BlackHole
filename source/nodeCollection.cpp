@@ -133,7 +133,6 @@ double nodeCollection<dimensions>::getEnergyR(blackHoleNode<dimensions>* unp, ex
 		double energy = 0.0;
 		for(int i = 0; i < tree->getLength(); i++){
 				energy += getEnergyR(unp, expVar, tree->children[i]);
-				//std::cout<<energy<<"\t";
 		}
 		return energy;
 	}

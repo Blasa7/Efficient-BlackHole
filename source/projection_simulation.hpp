@@ -132,26 +132,26 @@ public:
 		}
 
 
-		// Rebuild the quadtree.
-		if (remakeQuadTree) {
-			// Provide padding for the points to move around.
-			for (int i = 0; i < dimensions; ++i) {
-				float padding = (maxCoordinate[i] - minCoordinate[i]) / 2;
+		// Rebuild the quadtree. Performance cost is almost nonexistent as it generally 
+		// gives more balanced trees and the construction cost is not too large.
 
-				newMaxCoordinate[i] += padding;
-				newMinCoordinate[i] -= padding;
-			}
+		// Provide padding for the points to move around.
+		for (int i = 0; i < dimensions; ++i) {
+			float padding = (maxCoordinate[i] - minCoordinate[i]) / 2;
 
-			delete quadtree;
+			newMaxCoordinate[i] += padding;
+			newMinCoordinate[i] -= padding;
+		}
 
-			quadtree = new Quadtree<dimensions, MAX_QUADTREE_DEPTH>(newMinCoordinate, newMaxCoordinate, 0, nullptr);
+		delete quadtree;
 
-			minCoordinate = newMinCoordinate;
-			maxCoordinate = newMaxCoordinate;
+		quadtree = new Quadtree<dimensions, MAX_QUADTREE_DEPTH>(newMinCoordinate, newMaxCoordinate, 0, nullptr);
 
-			for (int i = 0; i < adjacencyList.size(); ++i) {
-				handles[i] = quadtree->addPoint(points[i], adjacencyList[i].size());
-			}
+		minCoordinate = newMinCoordinate;
+		maxCoordinate = newMaxCoordinate;
+
+		for (int i = 0; i < adjacencyList.size(); ++i) {
+			handles[i] = quadtree->addPoint(points[i], adjacencyList[i].size());
 		}
 		
 		adjustExponents();
@@ -194,6 +194,7 @@ public:
 
 			int bestScale = 0;
 			float bestEnergy = quadtree->calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
+			Point<dimensions> newBestPosition;
 
 			Point<dimensions> oldPosition = point;
 
@@ -203,7 +204,7 @@ public:
 			// 3. add point back
 			// 4. calculate and compare new energy
 			for (int scale = 32; scale >= 1 && (bestScale == 0 || bestScale / 2 == scale); scale /= 2) {
-				handles[i].removePoint(weighting);
+				handles[i].removePoint(point, weighting);
 
 				for (int j = 0; j < dimensions; ++j) {
 					point[j] = oldPosition[j] + direction[j] * scale;
@@ -217,6 +218,7 @@ public:
 				if (newEnergy < bestEnergy) {
 					bestEnergy = newEnergy;
 					bestScale = scale;
+					newBestPosition = point;
 				}
 			}
 
@@ -226,7 +228,7 @@ public:
 			// 3. add point back
 			// 4. calculate and compare new energy
 			for (int scale = 64; scale <= 128 && bestScale == scale / 2; scale *= 2) {
-				handles[i].removePoint(weighting);
+				handles[i].removePoint(point, weighting);
 
 				for (int j = 0; j < dimensions; ++j) {
 					point[j] = oldPosition[j] + direction[j] * scale;
@@ -240,15 +242,14 @@ public:
 				if (newEnergy < bestEnergy) {
 					bestEnergy = newEnergy;
 					bestScale = scale;
+					newBestPosition = point;
 				}
 			}
 
 			// Remove and add back with the best scale.
-			handles[i].removePoint(weighting);
+			handles[i].removePoint(point, weighting);
 
-			for (int j = 0; j < dimensions; ++j) {
-				point[j] = oldPosition[j] + direction[j] * bestScale;
-			}
+			point = newBestPosition;
 
 			handles[i] = quadtree->addPoint(point, weighting);
 
