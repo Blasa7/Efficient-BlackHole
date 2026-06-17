@@ -49,6 +49,7 @@ public:
 			result = QuadtreePointHandle<dimensions, maxDepth>(this);
 
 			++pointCount;
+			++numberOfBranchLeaves;
 		}
 		// Not maximum depth and no space to store the point. Thus we must split this node and store both its currently stored node and the new node in the children.
 		else {
@@ -150,6 +151,9 @@ private:
 	Quadtree<dimensions, maxDepth>* children = nullptr;
 	bool childCreated[childCount] = {};
 
+	// Used to reduce recursion when the number of leaves in this branch equals one. As it means all points in this branch are in a single leaf.
+	uint32_t numberOfBranchLeaves = 0; 
+
 	QuadtreePointHandle<dimensions, maxDepth> pointHandle; // If this node is split then the point is move to some child. This pointer points to that child.
 
 	uint32_t pointCount = 0;
@@ -180,11 +184,17 @@ private:
 		// This is the deepest node that contains the point and we should decrement the counter.
 		--pointCount;
 
-		removePointUpwards(point, weighting); // Propagate removal upwards.
+		uint32_t leavesRemoved;
+
+		if (pointCount == 0) {
+			leavesRemoved = 1;
+		}
+
+		removePointUpwards(point, weighting, leavesRemoved); // Propagate removal upwards.
 	}
 
 	// Used to propagate upwards point removal.
-	void removePointUpwards(const Point<dimensions>& point, const float weighting) {
+	void removePointUpwards(const Point<dimensions>& point, const float weighting, const uint32_t leavesRemoved) {
 		// If we are trying to remove the last point, reset the centre of mass to 0 to avoid division by 0 corrupting future reuse of the centre of mass.
 		if (weight <= weighting) {
 			centreOfMass = Point<dimensions>();
@@ -197,14 +207,24 @@ private:
 		}
 
 		weight -= weighting;
+		numberOfBranchLeaves -= leavesRemoved;
 
 		if (parent != nullptr) {
-			parent->removePointUpwards(point, weighting);
+			parent->removePointUpwards(point, weighting, leavesRemoved);
+		}
+	}
+
+	// To propagate leaf creation upwards.
+	void leafCreated() {
+		++numberOfBranchLeaves;
+
+		if (parent != nullptr) {
+			parent->leafCreated();
 		}
 	}
 
 	// Calculates the repulsive energy omitting the constant multipliers.
-	float calculateUnscaledRepulsiveEnergy(const Point<dimensions>& point, const float repulsiveExponent) {
+	float calculateUnscaledRepulsiveEnergy(const Point<dimensions>& point, const float repulsiveExponent) const {
 		float squaredDistance = Point<dimensions>::squaredDistance(point, centreOfMass);
 
 		// A point may not repel itself.
@@ -214,7 +234,7 @@ private:
 
 		// If we can consider this branch as a single mass. Leaf nodes may also be considered as a single mass. 
 		// Leaf nodes may either be at maximum depth or contain exactly one point.
-		if (squaredDistance >= maxWidthSquared || isLeaf) {
+		if (squaredDistance >= maxWidthSquared || isLeaf || numberOfBranchLeaves == 1) {
 			if (repulsiveExponent == 0.0f) {
 				// We use the squared distance instead of the normal distance and thus add a factor 0.5f.
 				return weight * 0.5f * std::logf(squaredDistance);
@@ -239,7 +259,7 @@ private:
 	}
 
 	// Calculates the repulsive direction omitting the constant multipliers.
-	void calculateUnscaledRepulsiveDirection(const Point<dimensions>& point, const float repulsiveExponent, Point<dimensions>& directionAccumulator) {
+	void calculateUnscaledRepulsiveDirection(const Point<dimensions>& point, const float repulsiveExponent, Point<dimensions>& directionAccumulator) const {
 		float squaredDistance = Point<dimensions>::squaredDistance(point, centreOfMass);
 
 		if (squaredDistance == 0.0f) {
@@ -248,7 +268,7 @@ private:
 
 		// If we can consider this branch as a single mass. Leaf nodes may also be considered as a single mass. 
 		// Leaf nodes may either be at maximum depth or contain exactly one point.
-		if (squaredDistance >= maxWidthSquared || isLeaf) {
+		if (squaredDistance >= maxWidthSquared || isLeaf || numberOfBranchLeaves == 1) {
 			// We use the squared distance instead of the normal distance and thus add a factor 0.5f to the exponent.
 			float scale = weight * std::powf(squaredDistance, 0.5f * repulsiveExponent - 1.0f);
 

@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 
+#include <omp.h>
+
 #include <common.hpp>
 #include <point.hpp>
 #include <random.hpp>
@@ -67,13 +69,13 @@ public:
 		// Build the quadtree.
 		quadtree = new Quadtree<dimensions, MAX_QUADTREE_DEPTH>(minCoordinate, maxCoordinate, 0, nullptr);
 
-		// Calculate initial energy.
 		handles.reserve(adjacencyList.size());
 
 		for (int i = 0; i < adjacencyList.size(); ++i) {
 			handles.push_back(quadtree->addPoint(points[i], adjacencyList[i].size()));
 		}
 
+		// Calculate initial energy.
 		for (int i = 0; i < adjacencyList.size(); ++i) {
 			totalEnergy += quadtree->calculateRepulsiveEnergy(points[i], repulsionFactor, adjacencyList[i].size(), repulsionExponent) + calculateAttractiveEnergy(i);
 		}
@@ -156,6 +158,10 @@ public:
 		
 		adjustExponents();
 
+		using Clock = std::chrono::high_resolution_clock;
+
+		auto start = Clock::now();
+
 		// Simulate the movement of every point in series.
 		for (int i = 0; i < adjacencyList.size(); ++i) {
 			Point<dimensions>& point = points[i];
@@ -197,44 +203,29 @@ public:
 
 			Point<dimensions> oldPosition = point;
 
-			// Decrease scale to find best candidate.
-			// 1. remove point
-			// 2. compute new position
-			// 3. add point back
-			// 4. calculate and compare new energy
-			for (int scale = 32; scale >= 1 && (bestScale == 0 || bestScale / 2 == scale); scale /= 2) {
-				handles[i].removePoint(point, weighting);
+			handles[i].removePoint(point, weighting);
 
+			// Decrease scale to find best candidate.
+			for (int scale = 32; scale >= 1 && (bestScale == 0 || bestScale / 2 == scale); scale /= 2) {
 				for (int j = 0; j < dimensions; ++j) {
 					point[j] = oldPosition[j] + direction[j] * scale;
 				}
 
-				handles[i] = quadtree->addPoint(point, weighting);
-
-				// Fairly expensive energy calculation call, could look into incremental energy delta computation.
 				float newEnergy = quadtree->calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
 
 				if (newEnergy < bestEnergy) {
 					bestEnergy = newEnergy;
 					bestScale = scale;
 				}
+			
 			}
 
 			// Increase scale to find best candidate if the best scale was 32.
-			// 1. remove point
-			// 2. compute new position
-			// 3. add point back
-			// 4. calculate and compare new energy
 			for (int scale = 64; scale <= 128 && bestScale == scale / 2; scale *= 2) {
-				handles[i].removePoint(point, weighting);
-
 				for (int j = 0; j < dimensions; ++j) {
 					point[j] = oldPosition[j] + direction[j] * scale;
 				}
 
-				handles[i] = quadtree->addPoint(point, weighting);
-
-				// Fairly expensive energy calculation call, could look into incremental energy delta computation.
 				float newEnergy = quadtree->calculateRepulsiveEnergy(point, repulsionFactor, weighting, repulsionExponent) + calculateAttractiveEnergy(i);
 
 				if (newEnergy < bestEnergy) {
@@ -243,8 +234,7 @@ public:
 				}
 			}
 
-			// Remove and add back with the best scale.
-			handles[i].removePoint(point, weighting);
+			// Add back with the best scale.
 
 			for (int j = 0; j < dimensions; ++j) {
 				point[j] = oldPosition[j] + direction[j] * bestScale;
@@ -254,6 +244,11 @@ public:
 
 			totalEnergy += bestEnergy;
 		}
+
+		auto end = Clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+		std::cout << "Duration: " << duration << "     ";
 
 		++iteration;
 	}
@@ -277,10 +272,10 @@ private:
 	float repulsionFactor; // Set in constructor.
 
 	// BlackHole constants.
-	float attractionExponent = 0.00f;
+	float attractionExponent = 0.05f;
 	float repulsionExponent = 0.0f;
 
-	float attractionExponentFinal = 0.00f;
+	float attractionExponentFinal = 0.05f;
 	float repulsionExponentFinal = 0.0f;
 
 	uint32_t maxIterations = 100;
