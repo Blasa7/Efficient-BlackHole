@@ -9,7 +9,7 @@
 #include <chrono>
 
 constexpr uint32_t BLACKHOLE_DIMENSIONS = 3;
-constexpr float BLACKHOLE_ALPHA = 0.0f;
+constexpr float BLACKHOLE_ALPHA = 0.05f;
 constexpr uint32_t BLACKHOLE_MIN_PTS = 7;
 constexpr float BLACKHOLE_PRUNING_FRACTION = 0.0f;
 
