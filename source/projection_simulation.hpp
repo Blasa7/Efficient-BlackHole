@@ -4,8 +4,6 @@
 #include <vector>
 #include <iostream>
 
-#include <omp.h>
-
 #include <common.hpp>
 #include <point.hpp>
 #include <random.hpp>

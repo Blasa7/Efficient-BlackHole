@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cmath>
 
+// Simple wrapper for points. At least, for 3 and 4 dimensional points the compiler will optimize the functions to use SIMD instructions where appropiate.
 template <uint32_t dimensions>
 class Point {
 public:
@@ -56,5 +57,5 @@ public:
 
 protected:
 	// Position values, can be indexed by dimension.
-	float position[dimensions];
+	alignas(16) float position[dimensions];
 };
