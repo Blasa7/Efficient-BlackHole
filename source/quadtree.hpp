@@ -22,6 +22,11 @@ public:
 			// 1. Many children may never actually get used. 
 			// 2. If children get constructed immediately it would cascade down to a full tree containing childCount ^ maxDepth which is way more nodes than likely needed. 
 			children = static_cast<Quadtree<dimensions, maxDepth>*>(std::malloc(childCount * sizeof(Quadtree<dimensions, maxDepth>)));
+
+			// Initially no children exist and the mapping are cleared.
+			for (int i = 0; i < childCount; ++i) {
+				childMapping[i] = -1;
+			}
 		}
 
 		float maxWidth = calculateMaxWidth();
@@ -30,11 +35,12 @@ public:
 
 	~Quadtree() {
 		if (children != nullptr) {
-			for (int i = 0; i < childCount; ++i) {
+			for (int i = 0; i < nextChildIndex; ++i) {
 				//delete children[i];
-				if (childCreated[i]) {
-					children[i].~Quadtree();
-				}
+				//if (childCreated[i]) {
+				//if (childMapping[i] != -1) {
+				children[i].~Quadtree();
+				//}
 			}
 
 			std::free(children);
@@ -75,16 +81,16 @@ public:
 				}
 
 				// Create the child Quadtrees if they dont exist yet.
-				if (!childCreated[childIndexOld]) {
-					new (&children[childIndexOld]) Quadtree<dimensions, maxDepth>(childMinCoordinatesOld, childMaxCoordinatesOld, depth + 1, this);
-					childCreated[childIndexOld] = true;
+				if (childMapping[childIndexOld] == -1) {
+					new (&children[nextChildIndex]) Quadtree<dimensions, maxDepth>(childMinCoordinatesOld, childMaxCoordinatesOld, depth + 1, this);
+					childMapping[childIndexOld] = nextChildIndex;
+					++nextChildIndex;
 				}
 
 				// Insert the points into the children and store the handle for efficient deletion.
-				pointHandle = children[childIndexOld].addPoint(centreOfMass, weight);
+				pointHandle = children[childMapping[childIndexOld]].addPoint(centreOfMass, weight);
 
 				isLeaf = false;
-				//maxPointCount = 0; // Effectively marking this node as already split.
 			}
 
 			// Now do the same but for the new point.
@@ -108,13 +114,18 @@ public:
 			}
 
 			// Create the child Quadtrees if they dont exist yet.
-			if (!childCreated[childIndexNew]) {
-				new (&children[childIndexNew]) Quadtree<dimensions, maxDepth>(childMinCoordinatesNew, childMaxCoordinatesNew, depth + 1, this);
-				childCreated[childIndexNew] = true;
+			//if (!childCreated[childIndexNew]) {
+			if (childMapping[childIndexNew] == -1) {
+				//new (&children[childIndexNew]) Quadtree<dimensions, maxDepth>(childMinCoordinatesNew, childMaxCoordinatesNew, depth + 1, this);
+				//childCreated[childIndexNew] = true;
+
+				new (&children[nextChildIndex]) Quadtree<dimensions, maxDepth>(childMinCoordinatesNew, childMaxCoordinatesNew, depth + 1, this);
+				childMapping[childIndexNew] = nextChildIndex;
+				++nextChildIndex;
 			}
 
 			// Insert the points into the children.
-			result = children[childIndexNew].addPoint(point, weighting);
+			result = children[childMapping[childIndexNew]].addPoint(point, weighting);
 		}
 
 		// Update the centre of mass. Note that if this first point is added the centre of mass is equal to that points position.
@@ -136,7 +147,7 @@ public:
 		Point<dimensions> direction = Point<dimensions>();
 
 		calculateUnscaledRepulsiveDirection(point, repulsionExponent, direction);
-		
+
 		direction.scale(repulsionFactor * pointWeight);
 
 		return direction;
@@ -149,10 +160,11 @@ private:
 	Quadtree<dimensions, maxDepth>* parent;
 
 	Quadtree<dimensions, maxDepth>* children = nullptr;
-	bool childCreated[childCount] = {};
+	int childMapping[childCount];
+	uint32_t nextChildIndex = 0;
 
 	// Used to reduce recursion when the number of leaves in this branch equals one. As it means all points in this branch are in a single leaf.
-	uint32_t numberOfBranchLeaves = 0; 
+	uint32_t numberOfBranchLeaves = 0;
 
 	QuadtreePointHandle<dimensions, maxDepth> pointHandle; // If this node is split then the point is move to some child. This pointer points to that child.
 
@@ -248,9 +260,8 @@ private:
 		// Otherwise this must not be a leaf node or be treade as a single mass and we must recurse into all child trees..
 		float energy = 0.0f;
 
-		for (int i = 0; i < childCount; ++i) {
-			// The weight > 0.0f is a big time saver as it avoids deep recursion into empty branches.
-			if (childCreated[i] && children[i].weight > 0.0f) {
+		for (int i = 0; i < nextChildIndex; ++i) {
+			if (children[i].weight > 0.0f) {
 				energy += children[i].calculateUnscaledRepulsiveEnergy(point, repulsiveExponent);
 			}
 		}
@@ -280,9 +291,8 @@ private:
 		}
 
 		// Otherwise this must not be a leaf node or be treated as a single mass and we must recurse into all child trees..
-		for (int i = 0; i < childCount; ++i) {
-			// The weight > 0.0f is a big time saver as it avoids deep recursion into empty branches.
-			if (childCreated[i] && children[i].weight > 0.0f) {
+		for (int i = 0; i < nextChildIndex; ++i) {
+			if (children[i].weight > 0.0f) {
 				children[i].calculateUnscaledRepulsiveDirection(point, repulsiveExponent, directionAccumulator);
 			}
 		}
@@ -302,7 +312,7 @@ private:
 	}
 
 	// Dont allow reassignment as we are manually managing some memory that would not get freed in such cases corrupting the heap.
-	Quadtree& operator=(const Quadtree&) = delete; 
+	Quadtree& operator=(const Quadtree&) = delete;
 
 	// Allow the handle class to remove points.
 	friend class QuadtreePointHandle<dimensions, maxDepth>;
