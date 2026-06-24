@@ -1,9 +1,5 @@
 #pragma once
 
-#include "edgeReader.hpp"
-#include "nodeCollection.hpp"
-#include "ClusterPlay.hpp"
-#include "DBscanPlay.hpp"
 #include <string>
 #include <cstdlib>
 #include <chrono>
@@ -13,8 +9,7 @@
 #include <common.hpp>
 #include <dbscan.hpp>
 
-constexpr uint32_t BLACKHOLE_DIMENSIONS = 3;
-constexpr float BLACKHOLE_ALPHA = 0.0f;
+constexpr uint8_t BLACKHOLE_DIMENSIONS = 3;
 constexpr uint32_t BLACKHOLE_MIN_PTS = 7;
 constexpr float BLACKHOLE_PRUNING_FRACTION = 0.0f;
 
@@ -30,17 +25,11 @@ int main(){
 
 	std::cout << "BlackHole Parameters: " << '\n';
 
-	std::cout<<"Alpha: "<< BLACKHOLE_ALPHA<< '\n';
-
 	std::cout<<"Dimensions: "<< BLACKHOLE_DIMENSIONS << '\n';
 	
 	std::cout<<"MinPts: = "<< BLACKHOLE_MIN_PTS << '\n';
 
 	std::cout<<"Pruning Factor: "<< BLACKHOLE_PRUNING_FRACTION << '\n';
-
-	//ClusterPlay<BLACKHOLE_DIMENSIONS> cp;
-
-	//cp.play(inputPath.c_str(), BLACKHOLE_ALPHA, outputPath.c_str());
 
 	uint32_t nodeNum = 0;
 	EdgeList edgeList = parseEdgeList(inputPath, nodeNum);
@@ -56,10 +45,7 @@ int main(){
 	int* clusters = new	int[nodeNum]; // The resulting communities.
 
 	dbscan(points, clusters, nodeNum, BLACKHOLE_MIN_PTS, estimateEpsilon(points, nodeNum, BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION));
-	
-
-	//DBscanPlay<BLACKHOLE_DIMENSIONS>::dbscanCalculator(projectionSimulation.getResult(), nodeNum, BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION);
-	
+		
 	auto end = Clock::now();
 	auto bhduration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 	

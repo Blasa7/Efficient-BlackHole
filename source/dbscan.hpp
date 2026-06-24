@@ -7,10 +7,6 @@
 #include <limits>
 #include <vector>
 
-// Because compiling conflict with limits and some microslop stuff.
-#undef min
-#undef max
-
 // Will modify points.
 template <uint32_t dimensions>
 void dbscan(const Point<dimensions>* inputPoints, int* clusters, int pointNum, int minPts, float epsilon) {

@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+constexpr float PI = 3.14159; // Close enough.
+
 // Some typedefs to help with readability.
 typedef std::vector<std::pair<uint32_t, uint32_t>> EdgeList;
 typedef std::vector<std::vector<uint32_t>> AdjacencyList;

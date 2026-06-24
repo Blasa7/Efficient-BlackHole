@@ -15,7 +15,7 @@
 #undef max
 
 // Class to perform modfidied Barnes-Hutt simulation to project a graph into Euclidian space for the BlackHole algorithm.
-template <uint32_t dimensions>
+template <uint8_t dimensions>
 class ProjectionSimulation {
 public:
 	ProjectionSimulation(const AdjacencyList& adjacencyList, bool storeIntermediateResults) : adjacencyList(adjacencyList), storeIntermediateResults(storeIntermediateResults) {		

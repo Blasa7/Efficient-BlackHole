@@ -4,7 +4,7 @@
 #include <cmath>
 
 // Simple wrapper for points. At least, for 3 and 4 dimensional points the compiler will optimize the functions to use SIMD instructions where appropiate.
-template <uint32_t dimensions>
+template <uint8_t dimensions>
 class Point {
 public:
 	Point() {
