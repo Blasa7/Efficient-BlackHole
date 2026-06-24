@@ -22,9 +22,6 @@ const std::string inputPath = "..\\input\\10000.dat";
 const std::string outputPath = "..\\output\\result.dat";
 
 int main(){
-	Point<1> t = Point<1>();
-	//Quadtree<1, 10> t1;
-
 	using Clock = std::chrono::high_resolution_clock;
 
 	auto start = Clock::now();
