@@ -14,9 +14,11 @@ void dbscan(const Point<dimensions>* inputPoints, int* clusters, int pointNum, i
 
 	// Necessary because the kdtree will reorder the points and we need to retrieve the original index.
 	PointWithID<dimensions>* points = static_cast<PointWithID<dimensions>*>(malloc(pointNum * sizeof(PointWithID<dimensions>)));
+	bool* inQueue = new bool[pointNum];
 
 	for (int i = 0; i < pointNum; ++i) {
 		clusters[i] = -1; // Mark unvisited.
+		inQueue[i] = false;
 
 		new (&points[i]) PointWithID<dimensions>(inputPoints[i], i);
 	}
@@ -25,13 +27,14 @@ void dbscan(const Point<dimensions>* inputPoints, int* clusters, int pointNum, i
 
 	KDTree<dimensions> pointLookup(points, 0, pointNum - 1, 0);
 
+
 	for (int i = 0; i < pointNum; ++i) {
 		PointWithID<dimensions> point = points[i];
 
 		// If unvisited.
 		if (clusters[point.id] == -1) {
 			std::vector<PointWithID<dimensions>> neighbors;
-			pointLookup.rangeSearchSquaredDistance(point, epsilonSquared, neighbors);
+			pointLookup.rangeSearchSquaredDistance(point, epsilonSquared, neighbors, inQueue);
 
 			// Cluster size too small, label as noise.
 			if (neighbors.size() < minPts) {
@@ -61,9 +64,13 @@ void dbscan(const Point<dimensions>* inputPoints, int* clusters, int pointNum, i
 				clusters[neighbor.id] = nextClusterID;
 
 				std::vector<PointWithID<dimensions>> nextNeighbors;
-				pointLookup.rangeSearchSquaredDistance(neighbor, epsilonSquared, nextNeighbors);
+				pointLookup.rangeSearchSquaredDistance(neighbor, epsilonSquared, nextNeighbors, inQueue);
 
 				neighbors.insert(neighbors.end(), nextNeighbors.begin(), nextNeighbors.end());
+			}
+
+			for (int i = 0; i < pointNum; ++i) {
+				inQueue[i] = false;
 			}
 
 			++nextClusterID;
@@ -77,6 +84,7 @@ void dbscan(const Point<dimensions>* inputPoints, int* clusters, int pointNum, i
 		}
 	}
 
+	delete[] inQueue;
 	std::free(points);
 }
 template<uint32_t dimensions>

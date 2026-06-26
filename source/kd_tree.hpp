@@ -65,8 +65,8 @@ public:
 		delete right;
 	}
 
-	void rangeSearchSquaredDistance(PointWithID<dimensions> centre, float maximumSquaredDistance, std::vector<PointWithID<dimensions>>& result) {
-		return rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, 0);
+	void rangeSearchSquaredDistance(PointWithID<dimensions> centre, float maximumSquaredDistance, std::vector<PointWithID<dimensions>>& result, bool* inQueue) {
+		return rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, 0, inQueue);
 	}
 
 private:
@@ -116,9 +116,10 @@ private:
 		return store;
 	}
 
-	inline void rangeSearchSquaredDistance(PointWithID<dimensions> centre, float maximumSquaredDistance, std::vector<PointWithID<dimensions>>& result, int depth) {
-		if (PointWithID<dimensions>::squaredDistance(centre, point) <= maximumSquaredDistance) {
+	inline void rangeSearchSquaredDistance(const PointWithID<dimensions>& centre, float maximumSquaredDistance, std::vector<PointWithID<dimensions>>& result, int depth, bool* inQueue) {
+		if (PointWithID<dimensions>::squaredDistance(centre, point) <= maximumSquaredDistance && !inQueue[point.id]) {
 			result.push_back(point);
+			inQueue[point.id] = true;
 		}
 
 		int splitDimension = depth % dimensions;
@@ -130,21 +131,21 @@ private:
 		// Negative so centre is on the left of the plane and the left branch is the near branch.
 		if (diff < 0) {
 			if (left != nullptr) {
-				left->rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, depth);
+				left->rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, depth, inQueue);
 			}
 
 			if (diff * diff <= maximumSquaredDistance && right != nullptr) { // Must also search right of the plane.
-				right->rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, depth);
+				right->rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, depth, inQueue);
 			}
 		} 
 		else { // Positive so centre is on the right side of the plane and the right branch is the near branch.
 			if (right != nullptr) {
-				right->rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, depth);
+				right->rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, depth, inQueue);
 
 			}
 
 			if (diff * diff <= maximumSquaredDistance && left != nullptr) { // Must also search right of the plane.
-				left->rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, depth);
+				left->rangeSearchSquaredDistance(centre, maximumSquaredDistance, result, depth, inQueue);
 			}
 		}
 	}

@@ -44,12 +44,16 @@ int main(){
 	Point<BLACKHOLE_DIMENSIONS>* points = projectionSimulation.getResult();
 	int* clusters = new	int[nodeNum]; // The resulting communities.
 
+	auto startDbscan = Clock::now();
+
 	dbscan(points, clusters, nodeNum, BLACKHOLE_MIN_PTS, estimateEpsilon(points, nodeNum, BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION));
 		
 	auto end = Clock::now();
-	auto bhduration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	auto projectionDuration = std::chrono::duration_cast<std::chrono::milliseconds>(startDbscan - start);
+	auto dbscanDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - startDbscan);
+	auto bhDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 	
-	std::cout << "BlackHole done, it took: " << bhduration.count() << "ms! \n";
+	std::cout << "BlackHole done, it took: " << bhDuration.count() << "ms     Time spend on projecting: " << projectionDuration.count() << "ms     Time spent on clustering: " << dbscanDuration.count() << "ms\n";
 
 	return 0;
 }
