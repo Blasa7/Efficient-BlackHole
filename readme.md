@@ -16,7 +16,7 @@ This repository contains an optimized version of the original BlackHole implemen
 The project contains a CMakeLists.txt in the source folder which needs to be built with CMake.
 
 ## How to use
-In "main.cpp" the main algorithmic parameters are defined and can be tuned in addition to the input and output files. The input requires an edgelist starting with vertex indicies counting from 0. The output are the indices of the vertices in each community. The attraction and repulsion exponents are controlled in "projection_simulation.hpp" and may be tweaked. The default relative paths assume the build folder is placed in the main directory.
+In "main.cpp" the main algorithmic parameters are defined and can be tuned in addition to the input and output files. The input requires an edgelist starting with vertex indicies counting from 0. The output are the indices of the vertices in each community. The attraction and repulsion exponents are controlled in "projection_simulation.hpp" and may be tweaked. The default relative paths assume the build folder is placed in the main directory. Additionally the output folder must also be created manually or the path changed to an existing folder.
 
 ## Improvements
 
