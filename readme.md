@@ -12,6 +12,12 @@ https://github.com/kaist-dmlab/BlackHole
 
 This repository contains an optimized version of the original BlackHole implementation with a focus on improving runtime performance while preserving the original algorithmic behavior.
 
+## How to run
+The project contains a CMakeLists.txt in the source folder which needs to be built with CMake.
+
+## How to use
+In "main.cpp" the main algorithmic parameters are defined and can be tuned in addition to the input and output files. The input requires an edgelist starting with vertex indicies counting from 0. The output are the indices of the vertices in each community. The attraction and repulsion exponents are controlled in "projection_simulation.hpp" and may be tweaked. The default relative paths assume the build folder is placed in the main directory.
+
 ## Improvements
 
 The following changes have been made:

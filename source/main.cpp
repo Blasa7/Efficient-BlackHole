@@ -55,5 +55,7 @@ int main(){
 	
 	std::cout << "BlackHole done, it took: " << bhDuration.count() << "ms     Time spend on projecting: " << projectionDuration.count() << "ms     Time spent on clustering: " << dbscanDuration.count() << "ms\n";
 
+	writeCommunitiesToFile(clusters, nodeNum, outputPath);
+
 	return 0;
 }

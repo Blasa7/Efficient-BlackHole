@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 constexpr float PI = 3.14159; // Close enough.
 
@@ -86,4 +87,31 @@ inline bool contains(const T* data, uint32_t size, const T& value) {
 	}
 
 	return false;
+}
+
+void writeCommunitiesToFile(const int* communities, uint32_t nodeNum, std::string fileName) {
+	// Group nodes by community
+	std::unordered_map<int, std::vector<int>> groups;
+	groups.reserve(nodeNum);
+	for (size_t node = 0; node < nodeNum; ++node) {
+		int comm = communities[node];
+		groups[comm].push_back(static_cast<int>(node));
+	}
+
+	std::ofstream out(fileName);
+	if (!out) return; // Could throw or handle error as desired
+
+	// Write each community on its own line
+	bool firstLine = true;
+	for (auto& kv : groups) {
+		const std::vector<int>& members = kv.second;
+		if (!firstLine) out << '\n';
+		firstLine = false;
+
+		// join with commas
+		for (size_t i = 0; i < members.size(); ++i) {
+			if (i) out << ',';
+			out << members[i];
+		}
+	}
 }

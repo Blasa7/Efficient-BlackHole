@@ -5,8 +5,6 @@ project(EfficientBlackHole LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(OpenMP REQUIRED)
-
 # Gather all files recursively
 file(GLOB_RECURSE PROJECT_FILES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/*.cpp"
@@ -29,5 +27,4 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE 
-    OpenMP::OpenMP_CXX
 )
