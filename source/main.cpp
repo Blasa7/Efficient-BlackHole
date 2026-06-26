@@ -13,7 +13,7 @@ constexpr float BLACKHOLE_ALPHA = 0.05f;
 constexpr uint32_t BLACKHOLE_MIN_PTS = 7;
 constexpr float BLACKHOLE_PRUNING_FRACTION = 0.0f;
 
-const std::string inputPath = "..\\input\\10000.dat";
+const std::string inputPath = "..\\input\\100000.dat";
 const std::string outputPath = "..\\output\\result.dat";
 
 int main(){
@@ -37,13 +37,18 @@ int main(){
 
 	cp.play(inputPath.c_str(), BLACKHOLE_ALPHA, outputPath.c_str());
 
+	auto startDbscan = Clock::now();
+
 	// DBSCAN
 	DBscanPlay<BLACKHOLE_DIMENSIONS>::dbscanCalculator(outputPath.c_str(), BLACKHOLE_MIN_PTS, BLACKHOLE_PRUNING_FRACTION);
 	
 	auto end = Clock::now();
-	auto bhduration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+	auto projectionDuration = std::chrono::duration_cast<std::chrono::milliseconds>(startDbscan - start);
+	auto clusteringDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - startDbscan);
+	auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 	
-	std::cout << "BlackHole done, it took: " << bhduration.count() << "ms! \n";
+	std::cout << "BlackHole done, it took: " << totalDuration.count() << "ms     Time spend on projecting: " << projectionDuration.count() << "ms     Time spent on clustering: " << clusteringDuration.count() << "ms\n";
 
 	return 0;
 }
